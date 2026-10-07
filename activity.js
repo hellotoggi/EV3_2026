@@ -25,7 +25,7 @@ function finalQuiz(){quizGroup('#finalQuiz','#finalStatus',[
 ['코딩 후 실제 움직임을 구현한 것은?',['화면','모터','메뉴'],1,'바퀴나 팔을 돌리는 부품이에요.']
 ],()=>{done.add(9);show(current);$('#finish').showModal()})}finalQuiz();$('#retryFinal').onclick=()=>{done.delete(9);$('#finish').close();finalQuiz();show(current)};show(1);
 // Keep each illustration proportional to the available activity space.
-function fitPictures(){document.querySelectorAll('.stage.active .picture').forEach(p=>{const img=p.querySelector('img'),grid=p.closest('.grid');if(!img.naturalWidth||!grid)return;const ratio=img.naturalWidth/img.naturalHeight;const available=grid.getBoundingClientRect().height;const columns=getComputedStyle(grid).gridTemplateColumns.split(' ');const columnWidth=parseFloat(columns[0]);p.style.width=Math.floor(Math.min(columnWidth,available*ratio))+'px';if(p.id==='robotTypes'){const stage=p.closest('.stage');stage.style.setProperty('--robot-panel-width',p.style.width);stage.style.setProperty('--robot-panel-height',p.getBoundingClientRect().height+'px');}});}
+function fitPictures(){document.querySelectorAll('.stage.active .picture').forEach(p=>{const img=p.querySelector('img'),grid=p.closest('.grid');if(!img.naturalWidth||!grid)return;const ratio=img.naturalWidth/img.naturalHeight;const rows=getComputedStyle(grid).gridTemplateRows.split(' ');const available=parseFloat(rows[0])||grid.clientHeight;const columns=getComputedStyle(grid).gridTemplateColumns.split(' ');const columnWidth=parseFloat(columns[0])||grid.clientWidth;p.style.width=Math.floor(Math.min(columnWidth,available*ratio))+'px';if(p.id==='robotTypes'){const stage=p.closest('.stage');stage.style.setProperty('--robot-panel-width',p.style.width);stage.style.setProperty('--robot-panel-height',p.offsetHeight+'px');}});}
 new ResizeObserver(fitPictures).observe(document.querySelector('main'));document.querySelectorAll('.picture img').forEach(img=>img.addEventListener('load',fitPictures));const originalShow=show;show=function(n){originalShow(n);requestAnimationFrame(fitPictures)};fitPictures();
 
 const componentMarkers={};[['hardware',7,3,86,37],['energy',7,41,86,24],['software',7,67,86,30]].forEach(([key,x,y,w,h])=>{const marker=mark('#componentPicture',[stickerNames[key],x,y,w,h],()=>{});marker.style.pointerEvents='none';marker.tabIndex=-1;componentMarkers[key]=marker;});requestAnimationFrame(fitPictures);
@@ -56,3 +56,21 @@ if(replayRaw){
  if($('#finish').open)$('#finish').close();done.clear();replay.done.forEach(n=>done.add(n));show(replay.step);requestAnimationFrame(fitPictures);
  }catch(e){restoringActivities=false;show(1)}
 }
+
+// Fit a complete activity canvas to the actual visible browser area.
+function fitViewport(){
+ const viewport=window.visualViewport;
+ const w=viewport?viewport.width:innerWidth,h=viewport?viewport.height:innerHeight;
+ const portrait=w/h<1.05;
+ const shell=document.getElementById('appShell');
+ const designWidth=portrait?900:1366,designHeight=portrait?1250:900;
+ const scale=Math.min(w/designWidth,h/designHeight);
+ shell.classList.toggle('portrait',portrait);
+ shell.style.width=designWidth+'px';shell.style.height=designHeight+'px';
+ shell.style.transform='scale('+scale+')';
+ shell.style.left=((w-designWidth*scale)/2+(viewport?.offsetLeft||0))+'px';
+ shell.style.top=((h-designHeight*scale)/2+(viewport?.offsetTop||0))+'px';
+ fitPictures();
+}
+window.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('scroll',fitViewport);
+document.fonts?.ready.then(fitViewport);document.querySelectorAll('img').forEach(img=>img.addEventListener('load',fitViewport));fitViewport();
